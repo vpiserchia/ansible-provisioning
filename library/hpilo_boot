@@ -41,6 +41,10 @@ options:
     description:
       - The password to authenticate to the HP iLO interface.
     default: admin
+  ssl_version:
+    description:
+      - The SSL version used to authenticate to the HP iLO interface.
+    default: tlsv1
   media:
     description:
       - The boot media to boot the system from
@@ -77,6 +81,7 @@ examples:
           host: YOUR_ILO_ADDRESS
           login: YOUR_ILO_LOGIN
           password: YOUR_ILO_PASSWORD
+          ssl_version: tlsv1_2
           media: cdrom
           image: http://some-web-server/iso/boot.iso
         when: cmdb_hwmodel.startswith('HP ')
@@ -115,6 +120,7 @@ def main():
             host = dict(required=True),
             login = dict(default='Administrator'),
             password = dict(default='admin'),
+            ssl_version = dict(default='tlsv1', choices=['sslv3', 'sslv23', 'tlsv1', 'tlsv1_1', 'tlsv1_2']),
             media = dict(default=None, choices=['cdrom', 'floppy', 'rbsu', 'hdd', 'network', 'normal', 'usb']),
             image = dict(default=None),
             state = dict(default='boot_once', choices=['boot_always', 'boot_once', 'connect', 'disconnect', 'no_boot', 'poweroff']),
@@ -125,12 +131,13 @@ def main():
     host = module.params.get('host')
     login = module.params.get('login')
     password = module.params.get('password')
+    ssl_version = getattr(hpilo.ssl, 'PROTOCOL_' + module.params.get('ssl_version').upper().replace('V','v'))
     media = module.params.get('media')
     image = module.params.get('image')
     state = module.params.get('state')
     force = module.boolean(module.params.get('force'))
 
-    ilo = hpilo.Ilo(host, login=login, password=password)
+    ilo = hpilo.Ilo(host, login=login, password=password, ssl_version=ssl_version)
     changed = False
     status = {}
     power_status = 'UNKNOWN'
